@@ -20,8 +20,8 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// chunkExists checks if a chunk hash is already stored in the database or seen map.
-func chunkExists(chunkHash string, tx *sqlx.Tx, seenChunks map[string]bool) bool {
+// ChunkExists checks if a chunk hash is already stored in the database or seen map.
+func ChunkExists(chunkHash string, tx *sqlx.Tx, seenChunks map[string]bool) bool {
 	if _, ok := seenChunks[chunkHash]; ok {
 		return true
 	}
@@ -72,7 +72,7 @@ func StoreFileChunks(tx *sqlx.Tx, filePath string, callback func(int, int, strin
 		sha256Hash.Write(data)
 		hash := hex.EncodeToString(sha256Hash.Sum(nil))
 
-		if chunkExists(hash, tx, seenChunks) {
+		if ChunkExists(hash, tx, seenChunks) {
 			chunkSequence = append(chunkSequence, hash)
 			processed_size += len(data)
 			callback(processed_size, fileSize, "", "")

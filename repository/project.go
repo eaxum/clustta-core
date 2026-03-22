@@ -136,7 +136,7 @@ func InitDB(projectPath string, studioName, workingDir string, user auth.User, w
 		tx.Rollback()
 		return err
 	}
-	_, err = AddKnownUser(tx, user.Id, user.Email, user.Username, user.FirstName, user.LastName, role.Id, []byte{}, true, &noopAuthProvider{})
+	_, err = AddKnownUser(tx, user.Id, user.Email, user.Username, user.FirstName, user.LastName, role.Id, []byte{}, true, &NoopAuthProvider{})
 	if err != nil {
 		return err
 	}
@@ -149,17 +149,17 @@ func InitDB(projectPath string, studioName, workingDir string, user auth.User, w
 	return nil
 }
 
-// noopAuthProvider is a no-op auth provider used during InitDB
-// where we don't want to fetch photos from the server.
-type noopAuthProvider struct{}
+// NoopAuthProvider is a no-op auth provider used when auth operations
+// are not needed (e.g., InitDB, WriteProjectData with fetchPhoto=false).
+type NoopAuthProvider struct{}
 
-func (n *noopAuthProvider) GetActiveUser() (auth.User, error)   { return auth.User{}, nil }
-func (n *noopAuthProvider) GetToken() (auth.Token, error)       { return auth.Token{}, nil }
-func (n *noopAuthProvider) AttachBearerToken(req *http.Request) {}
-func (n *noopAuthProvider) FetchUserData(email string) (auth.User, error) {
+func (n *NoopAuthProvider) GetActiveUser() (auth.User, error)   { return auth.User{}, nil }
+func (n *NoopAuthProvider) GetToken() (auth.Token, error)       { return auth.Token{}, nil }
+func (n *NoopAuthProvider) AttachBearerToken(req *http.Request) {}
+func (n *NoopAuthProvider) FetchUserData(email string) (auth.User, error) {
 	return auth.User{}, nil
 }
-func (n *noopAuthProvider) FetchUserPhoto(userId string) ([]byte, error) { return []byte{}, nil }
+func (n *NoopAuthProvider) FetchUserPhoto(userId string) ([]byte, error) { return []byte{}, nil }
 
 func initData(tx *sqlx.Tx) error {
 	_, err := GetOrCreateStatus(tx, "todo", "todo", "#c0c0c0")

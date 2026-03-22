@@ -1,0 +1,97 @@
+package repository
+
+import (
+	"database/sql"
+	"fmt"
+
+	"github.com/eaxum/clustta-core/base_service"
+	"github.com/jmoiron/sqlx"
+)
+
+type Tomb struct {
+	Id        string `db:"id" json:"id"`
+	Mtime     int    `db:"mtime" json:"mtime"`
+	TableName string `db:"table_name" json:"table_name"`
+	Synced    bool   `db:"synced" json:"synced"`
+}
+
+func GetTombs(tx *sqlx.Tx) ([]Tomb, error) {
+	tombs := []Tomb{}
+	err := base_service.GetAll(tx, "tomb", &tombs)
+	if err != nil {
+		return tombs, err
+	}
+	return tombs, nil
+}
+
+// GetTomb returns a single tomb entry by its ID.
+func GetTomb(tx *sqlx.Tx, id string) (Tomb, error) {
+	var tomb Tomb
+	err := tx.Get(&tomb, "SELECT id, mtime, table_name, synced FROM tomb WHERE id = ?", id)
+	return tomb, err
+}
+
+func GetTombsByTableName(tx *sqlx.Tx, tableName string) ([]Tomb, error) {
+	tombs := []Tomb{}
+	err := tx.Select(&tombs, "SELECT * FROM tomb WHERE table_name = ?", tableName)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return tombs, nil
+		}
+		return tombs, err
+	}
+	return tombs, nil
+}
+
+func AddItemsToTomb(tx *sqlx.Tx, tombs []Tomb) error {
+	for _, tomb := range tombs {
+		query := fmt.Sprintf("DELETE FROM %s WHERE id = '%s';", tomb.TableName, tomb.Id)
+		_, err := tx.Exec(query)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func GetTombedItems(tx *sqlx.Tx) ([]string, error) {
+	var tombedIds []string
+	err := tx.Select(&tombedIds, "SELECT id FROM tomb")
+	return tombedIds, err
+}
+
+func IsItemInTomb(tx *sqlx.Tx, itemID, tableName string) (bool, error) {
+	var isItemInTomb bool
+	query := `
+		SELECT COUNT(*) > 0 AS item_in_tomb
+		FROM tomb
+		WHERE id = ?
+		  AND table_name = ?
+		  AND synced = 0
+	`
+	err := tx.Get(&isItemInTomb, query, itemID, tableName)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return isItemInTomb, nil
+}
+
+func DeleteTomb(tx *sqlx.Tx, id string) error {
+	_, err := tx.Exec("DELETE FROM tomb WHERE id = ?", id)
+	if err != nil {
+		return fmt.Errorf("error deleting tomb: %w", err)
+	}
+	return nil
+}
+
+func ClearAllTombs(tx *sqlx.Tx) error {
+	_, err := tx.Exec("DELETE FROM tomb")
+	if err != nil {
+		return fmt.Errorf("error clearing tomb: %w", err)
+	}
+	return nil
+}

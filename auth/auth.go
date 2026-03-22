@@ -1,5 +1,7 @@
 package auth
 
+import "net/http"
+
 // User represents an authenticated user's profile information.
 // This is the lightweight auth user, distinct from the full database models.User.
 type User struct {
@@ -22,4 +24,7 @@ type Token struct {
 type Provider interface {
 	GetActiveUser() (User, error)
 	GetToken() (Token, error)
+	AttachBearerToken(req *http.Request)
+	FetchUserData(email string) (User, error)
+	FetchUserPhoto(userId string) ([]byte, error)
 }
